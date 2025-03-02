@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analog Clock</title>
+    <style>
+        
+        #clock-container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+        }
+
+        #clock-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        #hand {
+            transform-origin: center;
+            transition: transform 0.05s cubic-bezier(0.1, 2.7, 0.58, 1);
+        }
+    </style>
+</head>
+<body >
+
+<div id="clock-container">
+    <object id="clock-svg" type="image/svg+xml" data="clock.svg"></object>
+</div>
+
+<script>
+    const svgObject = document.getElementById('clock-svg');
+    const wiggleDuration = 6000;
+    let handAnchorX = 481;
+    let handAnchorY = 472.9;
+
+    // Manual pinning of bananas to times (1 to 12)
+    const bananaToTime = {
+        "banana_x5F_1": 7,  // Change these to match your design
+        "banana_x5F_2": 8,
+        "banana_x5F_3": 9,
+        "banana_x5F_4": 10,
+        "banana_x5F_5": 11,
+        "banana_x5F_6": 12,
+        "banana_x5F_7": 1,
+        "banana_x5F_8": 2,
+        "banana_x5F_9": 3,
+        "banana_x5F_10": 4,
+        "banana_x5F_11": 5,
+        "banana_x5F_12": 6
+    };
+
+
+    svgObject.addEventListener('load', function() {
+        const svgDoc = svgObject.contentDocument;
+        const hand = svgDoc.getElementById('hand');
+        const bananas = svgDoc.getElementById('bananas');
+        const bananaElements = Array.from(bananas.children);
+
+        // After SVG is loaded, apply transform-origin to banana elements
+        bananaElements.forEach(banana => {
+            banana.style.transformOrigin = "center center"; // Change from top to center
+        });
+
+
+        function setHandPosition() {
+            const now = new Date();
+            const seconds = now.getSeconds();
+            const rotationDegrees = (seconds / 60) * 360;
+            hand.style.transformOrigin = `${handAnchorX}px ${handAnchorY}px`;
+            hand.style.transform = `rotate(${rotationDegrees}deg)`;
+
+            bananaElements.forEach(banana => {
+                const bananaId = banana.id;
+                const bananaTime = bananaToTime[bananaId];
+
+                if (!bananaTime) {
+                    console.warn(`Banana ID "${bananaId}" not found in bananaToTime mapping.`);
+                    return; // Skip if not found
+                }
+
+                // Calculate the target angle for the banana (relative to 12 o'clock)
+                const targetAngle = ((bananaTime / 12) * 360)-5;
+                const angleDifference = Math.abs((rotationDegrees % 360) - targetAngle);
+
+                if (angleDifference < 10 || angleDifference > 350) {
+                    startRotate(banana);
+                }
+            });
+        }
+
+
+        function startRotate(element) {
+            if (!element.isRotating) {
+                element.isRotating = true;
+                let start = null;
+
+                function animate(timestamp) {
+                    if (!start) start = timestamp;
+                    const progress = timestamp - start;
+
+                    // Rotation effect
+                    const rotateAmount = Math.sin(progress / 50) * 3; // Adjust 3 for intensity
+                    element.style.transform = `rotate(${rotateAmount}deg)`;
+
+                    if (progress < wiggleDuration && element.isRotating) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        element.style.removeProperty('transform');  // Reset transform
+                        element.isRotating = false;
+                    }
+                }
+                requestAnimationFrame(animate);
+            }
+        }
+
+        // Initial call and then set interval
+        setHandPosition();
+        setInterval(setHandPosition, 1000);
+    });
+</script>
+
+</body>
+</html>
